@@ -20,9 +20,18 @@
   }
   .wrap { max-width: 920px; margin: 0 auto; padding: 28px 24px 60px; }
 
+  .head { display: flex; align-items: flex-start; gap: 16px; flex-wrap: wrap; }
+  .head .grow { flex: 1; min-width: 260px; }
   h1 { font-size: 18px; letter-spacing: .18em; font-weight: 500; margin: 0 0 4px; }
   h1 span { color: var(--accent); }
-  .sub { color: var(--dim); font-size: 12px; letter-spacing: .06em; margin-bottom: 26px; }
+  .sub { color: var(--dim); font-size: 12px; letter-spacing: .06em; }
+
+  .langs { display: flex; gap: 4px; }
+  .langs button {
+    background: var(--panel); color: var(--dim); border: 1px solid var(--line);
+    border-radius: 5px; padding: 5px 10px; cursor: pointer; font: inherit; font-size: 12px;
+  }
+  .langs button.on { border-color: var(--accent); color: var(--accent); }
 
   h2 { font-size: 12px; letter-spacing: .18em; color: var(--dim); font-weight: 500; margin: 26px 0 10px; }
 
@@ -43,6 +52,7 @@
     padding: 9px 12px; font: inherit; font-size: 13px;
   }
   input[type=text]:focus { outline: none; border-color: var(--accent); }
+  input[type=text].sub-field { margin-top: 8px; }
 
   .hint { color: var(--dim); font-size: 11.5px; margin-top: 7px; }
 
@@ -69,7 +79,6 @@
     border-radius: 5px; padding: 9px 16px; cursor: pointer; font: inherit; font-size: 13px;
   }
   .acts button.primary { border-color: var(--accent); color: var(--accent); }
-  .acts button:disabled { opacity: .4; cursor: not-allowed; }
 
   .save { display: flex; gap: 8px; align-items: center; margin-top: 22px;
           padding-top: 18px; border-top: 1px solid var(--line); flex-wrap: wrap; }
@@ -85,64 +94,198 @@
 </head>
 <body>
   <div class="wrap">
-    <h1>eDEX-<span>Deck</span> · Settings</h1>
-    <div class="sub">Point the centre pane at whatever you actually work in.</div>
+    <div class="head">
+      <div class="grow">
+        <h1>eDEX-<span>Deck</span> · <span data-i18n="titleTail"></span></h1>
+        <div class="sub" data-i18n="subtitle"></div>
+      </div>
+      <div class="langs">
+        <button data-lang="en">EN</button>
+        <button data-lang="zh">中文</button>
+      </div>
+    </div>
 
-    <h2>1 · WHAT GOES IN THE MIDDLE</h2>
+    <h2 data-i18n="step1"></h2>
     <div class="modes">
-      <button data-mode="window" class="on">Application / window</button>
-      <button data-mode="url">Web address</button>
-      <button data-mode="static">Local folder</button>
+      <button data-mode="window" class="on" data-i18n="modeWindow"></button>
+      <button data-mode="url" data-i18n="modeUrl"></button>
+      <button data-mode="static" data-i18n="modeStatic"></button>
     </div>
 
     <!-- native window -->
     <div class="pane on" id="pane-window">
-      <div class="hint">
-        A running native app is attached by reparenting its real window, so it becomes
-        part of the eDEX frame rather than a web copy. Windows only.
-        Pick one, then press <b>Attach</b>.
-      </div>
-      <div class="list" id="wlist"><div class="empty">loading…</div></div>
+      <div class="hint" data-i18n="winHint"></div>
+      <div class="list" id="wlist"><div class="empty" data-i18n="loading"></div></div>
       <div class="acts">
-        <button class="primary" id="btn-attach">Attach</button>
-        <button id="btn-detach">Detach</button>
-        <button id="btn-refresh">Refresh</button>
+        <button class="primary" id="btn-attach" data-i18n="attach"></button>
+        <button id="btn-detach" data-i18n="detach"></button>
+        <button id="btn-refresh" data-i18n="refresh"></button>
       </div>
     </div>
 
     <!-- web url -->
     <div class="pane" id="pane-url">
-      <input type="text" id="in-url" placeholder="http://127.0.0.1:8080/">
-      <div class="hint">Anything over HTTP — code-server, Jupyter, Grafana, a dashboard.</div>
-      <div class="acts"><button class="primary" id="btn-embed">Embed now</button></div>
+      <input type="text" id="in-url" data-i18n-ph="urlPh">
+      <div class="hint" data-i18n="urlHint"></div>
+      <div class="acts"><button class="primary" id="btn-embed" data-i18n="embedNow"></button></div>
     </div>
 
     <!-- static folder -->
     <div class="pane" id="pane-static">
-      <input type="text" id="in-dir" placeholder="examples">
-      <div class="hint">
-        Served from inside the binary — no external Python needed. Put the URL you want
-        to open below (leave empty to serve the folder's index).
-      </div>
-      <input type="text" id="in-static-url" placeholder="http://127.0.0.1:8898/  (optional)">
-      <div class="acts"><button class="primary" id="btn-static">Embed now</button></div>
+      <input type="text" id="in-dir" data-i18n-ph="dirPh">
+      <div class="hint" data-i18n="dirHint"></div>
+      <input type="text" class="sub-field" id="in-static-url" data-i18n-ph="staticUrlPh">
+      <div class="acts"><button class="primary" id="btn-static" data-i18n="embedNow"></button></div>
     </div>
 
-    <h2>2 · REMEMBER IT AS A PROFILE</h2>
+    <h2 data-i18n="step2"></h2>
     <div class="save">
-      <input type="text" id="in-name" placeholder="profile name, e.g. blender">
-      <button id="btn-save">Save</button>
-      <label class="cb"><input type="checkbox" id="cb-default" checked> use as default</label>
+      <input type="text" id="in-name" data-i18n-ph="namePh">
+      <button id="btn-save" data-i18n="save"></button>
+      <label class="cb"><input type="checkbox" id="cb-default" checked>
+        <span data-i18n="useDefault"></span></label>
     </div>
     <div class="msg" id="msg"></div>
   </div>
 
 <script>
+var I18N = {
+  en: {
+    titleTail: "Settings",
+    subtitle: "Point the centre pane at whatever you actually work in.",
+    step1: "1 · WHAT GOES IN THE MIDDLE",
+    modeWindow: "Application / window",
+    modeUrl: "Web address",
+    modeStatic: "Local folder",
+
+    winHint: "A running native app is attached by reparenting its real window, so it "
+           + "becomes part of the eDEX frame rather than a web copy. Windows only. "
+           + "Pick one, then press Attach.",
+    attach: "Attach",
+    detach: "Detach",
+    refresh: "Refresh",
+    loading: "loading…",
+    noWindows: "No attachable windows found. Launch the application first, then refresh.",
+
+    urlPh: "http://127.0.0.1:8080/",
+    urlHint: "Anything over HTTP — code-server, Jupyter, Grafana, a dashboard.",
+    embedNow: "Embed now",
+
+    dirPh: "examples",
+    dirHint: "Served from inside the binary — no external Python needed. Put the URL you "
+           + "want to open below (leave empty to serve the folder's index).",
+    staticUrlPh: "http://127.0.0.1:8898/  (optional)",
+
+    step2: "2 · REMEMBER IT AS A PROFILE",
+    namePh: "profile name, e.g. blender",
+    save: "Save",
+    useDefault: "use as default",
+
+    pickFirst: "pick a window first",
+    enterUrl: "enter a URL",
+    enterFolder: "enter a folder",
+    giveName: "give it a name",
+    selected: "selected: ",
+    attached: "attached — it now follows the eDEX layout",
+    detached: "detached — the window is back on its own",
+    embedding: "embedding ",
+    serving: "serving ",
+    savedProfile: "saved profile",
+    setAsDefault: " and set as default",
+    untitled: "(untitled)",
+    attachFailed: "attach failed: ",
+    detachFailed: "detach failed: ",
+    saveFailed: "save failed: "
+  },
+
+  zh: {
+    titleTail: "设置",
+    subtitle: "把中央窗格指向你真正在用的东西。",
+    step1: "1 · 中间放什么",
+    modeWindow: "应用 / 窗口",
+    modeUrl: "网页地址",
+    modeStatic: "本地文件夹",
+
+    winHint: "运行中的原生应用是通过重新挂载它的真实窗口来嵌入的，因此它会成为 eDEX 界面的一部分，"
+           + "而不是一个网页副本。仅支持 Windows。先在列表中选一个，再点「挂载」。",
+    attach: "挂载",
+    detach: "卸载",
+    refresh: "刷新",
+    loading: "加载中…",
+    noWindows: "没有找到可嵌入的窗口。请先启动目标程序，再点刷新。",
+
+    urlPh: "http://127.0.0.1:8080/",
+    urlHint: "任何通过 HTTP 访问的东西 —— code-server、Jupyter、Grafana、自研看板。",
+    embedNow: "立即嵌入",
+
+    dirPh: "examples",
+    dirHint: "由程序内部起服务，不需要外部 Python。下面填要打开的地址（留空则打开该目录的索引）。",
+    staticUrlPh: "http://127.0.0.1:8898/（可选）",
+
+    step2: "2 · 存成一个配置档",
+    namePh: "配置档名称，例如 blender",
+    save: "保存",
+    useDefault: "设为默认",
+
+    pickFirst: "先选一个窗口",
+    enterUrl: "填一个网址",
+    enterFolder: "填一个文件夹",
+    giveName: "给它起个名字",
+    selected: "已选择：",
+    attached: "已挂载 —— 现在会跟随 eDEX 的布局",
+    detached: "已卸载 —— 窗口恢复独立",
+    embedding: "正在嵌入 ",
+    serving: "正在提供 ",
+    savedProfile: "已保存配置档",
+    setAsDefault: "并设为默认",
+    untitled: "（无标题）",
+    attachFailed: "挂载失败：",
+    detachFailed: "卸载失败：",
+    saveFailed: "保存失败："
+  }
+};
+
 (function () {
   var mode = 'window';
-  var picked = null;      // {hwnd, title, exe}
+  var picked = null;
+  var lang = 'en';
   var $ = function (s) { return document.querySelector(s); };
   var msg = $('#msg');
+
+  function t(key) { return (I18N[lang] && I18N[lang][key] != null) ? I18N[lang][key] : key; }
+
+  function detectLang() {
+    try {
+      var s = localStorage.getItem('__edex_deck_lang');
+      if (s === 'en' || s === 'zh') return s;
+    } catch (e) {}
+    try {
+      if (String(navigator.language || '').toLowerCase().indexOf('zh') === 0) return 'zh';
+    } catch (e) {}
+    return 'en';
+  }
+
+  function applyI18n() {
+    Array.prototype.forEach.call(document.querySelectorAll('[data-i18n]'), function (el) {
+      var v = t(el.getAttribute('data-i18n'));
+      el.textContent = v;
+    });
+    Array.prototype.forEach.call(document.querySelectorAll('[data-i18n-ph]'), function (el) {
+      el.setAttribute('placeholder', t(el.getAttribute('data-i18n-ph')));
+    });
+    document.documentElement.lang = (lang === 'zh') ? 'zh-CN' : 'en';
+    document.title = 'eDEX-Deck · ' + t('titleTail');
+  }
+
+  function setLang(l) {
+    lang = l;
+    try { localStorage.setItem('__edex_deck_lang', l); } catch (e) {}
+    Array.prototype.forEach.call(document.querySelectorAll('.langs button'), function (b) {
+      b.classList.toggle('on', b.getAttribute('data-lang') === l);
+    });
+    applyI18n();
+    loadWindows();
+  }
 
   function say(text, ok) {
     msg.textContent = text || '';
@@ -155,10 +298,12 @@
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body)
-      }).then(function (r) { return r.json().then(function (j) {
-        if (!r.ok) throw new Error(j.error || r.status);
-        return j;
-      }); });
+      }).then(function (r) {
+        return r.json().then(function (j) {
+          if (!r.ok) throw new Error(j.error || r.status);
+          return j;
+        });
+      });
     }
     return fetch(path).then(function (r) {
       return r.json().then(function (j) {
@@ -167,6 +312,17 @@
       });
     });
   }
+
+  function escapeHtml(s) {
+    return String(s).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
+
+  // ---- language buttons
+  Array.prototype.forEach.call(document.querySelectorAll('.langs button'), function (b) {
+    b.addEventListener('click', function () { setLang(b.getAttribute('data-lang')); });
+  });
 
   // ---- mode tabs
   Array.prototype.forEach.call(document.querySelectorAll('.modes button'), function (b) {
@@ -185,12 +341,11 @@
   // ---- native windows
   function loadWindows() {
     var box = $('#wlist');
-    box.innerHTML = '<div class="empty">loading…</div>';
+    box.innerHTML = '<div class="empty">' + escapeHtml(t('loading')) + '</div>';
     api('/api/windows').then(function (j) {
       var ws = j.windows || [];
       if (!ws.length) {
-        box.innerHTML = '<div class="empty">No attachable windows found. '
-          + 'Launch the application first, then refresh.</div>';
+        box.innerHTML = '<div class="empty">' + escapeHtml(t('noWindows')) + '</div>';
         return;
       }
       box.innerHTML = '';
@@ -198,13 +353,13 @@
         var row = document.createElement('div');
         row.className = 'row';
         row.innerHTML = '<span class="hw">0x' + (w.hwnd >>> 0).toString(16).toUpperCase()
-          + '</span><span>' + escapeHtml(w.title || '(untitled)') + '</span>'
+          + '</span><span>' + escapeHtml(w.title || t('untitled')) + '</span>'
           + '<span class="ex">' + escapeHtml((w.exe || '').split('\\').pop()) + '</span>';
         row.addEventListener('click', function () {
           Array.prototype.forEach.call(box.children, function (r) { r.classList.remove('on'); });
           row.classList.add('on');
           picked = w;
-          say('selected: ' + (w.title || 'untitled'));
+          say(t('selected') + (w.title || t('untitled')));
         });
         box.appendChild(row);
       });
@@ -213,76 +368,70 @@
     });
   }
 
-  function escapeHtml(s) {
-    return String(s).replace(/[&<>"']/g, function (c) {
-      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
-    });
-  }
-
   $('#btn-refresh').addEventListener('click', loadWindows);
 
   $('#btn-attach').addEventListener('click', function () {
-    if (!picked) { say('pick a window first', false); return; }
-    api('/api/attach', { hwnd: picked.hwnd }).then(function (j) {
-      say('attached ' + (picked.title || '') + ' — it now follows the eDEX layout');
-    }).catch(function (e) { say('attach failed: ' + e.message, false); });
+    if (!picked) { say(t('pickFirst'), false); return; }
+    api('/api/attach', { hwnd: picked.hwnd }).then(function () {
+      say((picked.title || '') + ' ' + t('attached'), true);
+    }).catch(function (e) { say(t('attachFailed') + e.message, false); });
   });
 
   $('#btn-detach').addEventListener('click', function () {
-    if (!picked) { say('pick a window first', false); return; }
-    api('/api/detach', { hwnd: picked.hwnd }).then(function (j) {
-      say('detached — the window is back on its own');
-    }).catch(function (e) { say('detach failed: ' + e.message, false); });
+    if (!picked) { say(t('pickFirst'), false); return; }
+    api('/api/detach', { hwnd: picked.hwnd }).then(function () {
+      say(t('detached'), true);
+    }).catch(function (e) { say(t('detachFailed') + e.message, false); });
   });
 
   // ---- web url
   $('#btn-embed').addEventListener('click', function () {
     var u = $('#in-url').value.trim();
-    if (!u) { say('enter a URL', false); return; }
+    if (!u) { say(t('enterUrl'), false); return; }
     api('/api/embed', { url: u }).then(function () {
-      say('embedding ' + u);
-    }).catch(function (e) { say('failed: ' + e.message, false); });
+      say(t('embedding') + u, true);
+    }).catch(function (e) { say(e.message, false); });
   });
 
   // ---- static folder
   $('#btn-static').addEventListener('click', function () {
     var d = $('#in-dir').value.trim();
     var u = $('#in-static-url').value.trim();
-    if (!d) { say('enter a folder', false); return; }
+    if (!d) { say(t('enterFolder'), false); return; }
     api('/api/embed', { static: d, url: u }).then(function () {
-      say('serving ' + d);
-    }).catch(function (e) { say('failed: ' + e.message, false); });
+      say(t('serving') + d, true);
+    }).catch(function (e) { say(e.message, false); });
   });
 
   // ---- save profile
   $('#btn-save').addEventListener('click', function () {
     var name = $('#in-name').value.trim();
-    if (!name) { say('give it a name', false); return; }
+    if (!name) { say(t('giveName'), false); return; }
     var body = { name: name, makeDefault: $('#cb-default').checked };
     if (mode === 'window') {
-      if (!picked) { say('pick a window first', false); return; }
+      if (!picked) { say(t('pickFirst'), false); return; }
       body.mode = 'window';
       body.hwnd = picked.hwnd;
       body.title = picked.title;
     } else if (mode === 'url') {
       var u = $('#in-url').value.trim();
-      if (!u) { say('enter a URL', false); return; }
+      if (!u) { say(t('enterUrl'), false); return; }
       body.mode = 'url';
       body.url = u;
     } else {
       var d = $('#in-dir').value.trim();
-      if (!d) { say('enter a folder', false); return; }
+      if (!d) { say(t('enterFolder'), false); return; }
       body.mode = 'static';
       body.serveStatic = d;
       body.url = $('#in-static-url').value.trim();
     }
     api('/api/profile', body).then(function (j) {
-      say('saved profile "' + j.saved + '"'
-        + (body.makeDefault ? ' and set as default' : ''), true);
-    }).catch(function (e) { say('save failed: ' + e.message, false); });
+      say(t('savedProfile') + ' "' + j.saved + '"'
+        + (body.makeDefault ? t('setAsDefault') : ''), true);
+    }).catch(function (e) { say(t('saveFailed') + e.message, false); });
   });
 
-  loadWindows();
+  setLang(detectLang());
 })();
 </script>
 </body>

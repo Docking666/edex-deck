@@ -46,6 +46,22 @@ WS_EX_TOOLWINDOW = 0x00000080
 
 WM_NULL = 0x0000
 
+
+def as_int(h):
+    """Convert a window handle (possibly a ctypes HWND) to a plain int."""
+    if isinstance(h, int):
+        return h
+    v = getattr(h, "value", None)
+    if v is not None:
+        try:
+            return int(v)
+        except Exception:
+            return 0
+    try:
+        return int(h)
+    except Exception:
+        return 0
+
 # Reparenting any of these would wreck the desktop rather than decorate it.
 SKIP_CLASSES = {
     "Progman",                        # 桌面
@@ -147,7 +163,9 @@ class Win32:
                 continue
             pid = self.pid(hwnd)
             rows.append({
-                "hwnd": hwnd,
+                # 句柄是 ctypes 的 HWND，直接 json.dumps 会 TypeError ——
+                # 必须落成普通 int，否则设置页拿到的会是空响应体
+                "hwnd": as_int(hwnd),
                 "title": t,
                 "class": self.cls(hwnd),
                 "pid": pid,

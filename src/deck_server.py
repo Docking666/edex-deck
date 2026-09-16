@@ -164,8 +164,19 @@ class Handler(BaseHTTPRequestHandler):
         pass
 
     def _send(self, code, body, ctype="application/json; charset=utf-8"):
-        data = body if isinstance(body, bytes) else json.dumps(
-            body, ensure_ascii=False).encode("utf-8")
+        if isinstance(body, bytes):
+            data = body
+        else:
+            try:
+                data = json.dumps(body, ensure_ascii=False).encode("utf-8")
+            except Exception as e:
+                # 宁可返回一个说得清的错误，也不要发一个空响应体 ——
+                # 前端 r.json() 撞上空体只会抛出难懂的 "Unexpected end of JSON input"
+                data = json.dumps(
+                    {"error": "serialisation failed: %s: %s" % (type(e).__name__, e)},
+                    ensure_ascii=False,
+                ).encode("utf-8")
+                code = 500
         self.send_response(code)
         self.send_header("Content-Type", ctype)
         self.send_header("Content-Length", str(len(data)))
