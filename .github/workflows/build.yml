@@ -1,0 +1,85 @@
+name: build
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: build (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            artifact: edex-deck-windows
+            path: |
+              dist/edex-deck.exe
+              dist/edex-deck-portable-*.zip
+          - os: macos-latest
+            artifact: edex-deck-macos
+            path: |
+              dist/*.dmg
+          - os: ubuntu-latest
+            artifact: edex-deck-linux
+            path: |
+              dist/edex-deck
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pyinstaller websocket-client
+
+      - name: Build (Windows)
+        if: runner.os == 'Windows'
+        run: python tools/build.py --portable
+
+      - name: Build (Linux)
+        if: runner.os == 'Linux'
+        run: python tools/build.py
+
+      - name: Build (macOS)
+        if: runner.os == 'macOS'
+        run: |
+          # Keep the console build (it prints progress) and wrap it in a dmg
+          # together with the config and the bundled demo page.
+          python tools/build.py
+          mkdir -p dist/dmg
+          cp dist/edex-deck dist/dmg/
+          cp edex-deck.json dist/dmg/ || true
+          cp -r examples dist/dmg/ || true
+          ln -sf /Applications dist/dmg/Applications || true
+          hdiutil create -volname "eDEX-Deck" -srcfolder dist/dmg -ov -format UDZO dist/edex-deck.dmg
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact }}
+          path: ${{ matrix.path }}
+          if-no-files-found: warn
+
+  release:
+    name: attach to release
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: artifacts/**/*
+          generate_release_notes: true

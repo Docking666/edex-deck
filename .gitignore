@@ -4,6 +4,11 @@ __pycache__/
 .venv/
 venv/
 
+# build output
+dist/
+build/
+*.spec
+
 # transient render/preview output
 assets/_*.png
 *.log

@@ -48,9 +48,17 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 
 from layout_kit import LAYOUT_JS  # noqa: E402
+from screenshot import capture as sys_capture  # noqa: E402
 
 DEFAULT_DEBUG_PORT = 9333
 DEFAULT_SERVE_PORT = 8898
+
+
+def app_dir():
+    """打包成 exe 后指向 exe 所在目录；开发时指向项目根。"""
+    if getattr(sys, "frozen", False):
+        return os.path.dirname(os.path.abspath(sys.executable))
+    return os.path.dirname(HERE)
 
 
 # ------------------------------------------------------------------ helpers
@@ -299,9 +307,14 @@ def main():
     ap.add_argument("--outdir", default=os.path.join(HERE, "..", "docs", "screenshots"))
     args = ap.parse_args()
 
+    # 双击 exe 时不会带参数 —— 那就默认常驻到 eDEX 关闭，
+    # 否则用户双击完窗口一闪而过，什么也没发生。
+    if getattr(sys, "frozen", False) and len(sys.argv) == 1:
+        args.keep = True
+
     # Profile lookup. CLI flags always win over the profile, so any value can
     # be overridden on the command line.
-    cfg_path = args.config or os.path.join(os.path.dirname(HERE), "edex-deck.json")
+    cfg_path = args.config or os.path.join(app_dir(), "edex-deck.json")
     profiles = {}
     if os.path.exists(cfg_path):
         try:
@@ -510,7 +523,6 @@ def main():
         if args.system_shot:
             time.sleep(2.5)
             try:
-                from screenshot import capture as sys_capture
                 p = os.path.abspath(args.system_shot)
                 log("[shot]", p, sys_capture(p))
             except Exception as e:

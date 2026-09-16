@@ -57,7 +57,22 @@ eDEX-Deck 反过来做 —— 通过 Chrome DevTools Protocol 驱动**正在运�
 
 ---
 
-## 环境要求
+## 下载即用
+
+每个 [Release](https://github.com/Docking666/edex-deck/releases) 都附预编译包，**已内置 Python** —— 你唯一需要装的就是 eDEX-UI 本身。
+
+| 平台 | 文件 | 说明 |
+|---|---|---|
+| Windows | `edex-deck.exe` | 单文件，双击即可 |
+| Windows | `edex-deck-portable-*.zip` | 文件夹版，启动更快 |
+| macOS | `edex-deck.dmg` | |
+| Linux | `edex-deck` | 先 `chmod +x` |
+
+不带参数双击 = 注入布局坞并常驻，直到你关闭 eDEX。把 `edex-deck.json` 放在程序旁边即可使用 profile。
+
+---
+
+## 环境要求（从源码运行）
 
 - 已安装 eDEX-UI **2.2.x**
 - Python **3.8+**

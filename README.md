@@ -60,7 +60,22 @@ That also keeps this project free of eDEX-UI's source code, so it can be MIT.
 
 ---
 
-## Requirements
+## Download
+
+Prebuilt binaries are attached to every [release](https://github.com/Docking666/edex-deck/releases). They bundle Python — the only thing you need installed is eDEX-UI itself.
+
+| Platform | File | Notes |
+|---|---|---|
+| Windows | `edex-deck.exe` | single file, just double-click |
+| Windows | `edex-deck-portable-*.zip` | folder build, starts instantly |
+| macOS | `edex-deck.dmg` | |
+| Linux | `edex-deck` | `chmod +x` first |
+
+Launching the binary with no arguments injects the dock and stays running until you close eDEX. Keep `edex-deck.json` next to the binary to use profiles.
+
+---
+
+## Requirements (running from source)
 
 - eDEX-UI **2.2.x** installed ([releases](https://github.com/GitSquared/edex-ui/releases))
 - Python **3.8+**
