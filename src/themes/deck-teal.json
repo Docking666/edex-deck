@@ -1,0 +1,45 @@
+{
+    "colors": {
+        "r": 0,
+        "g": 168,
+        "b": 128,
+        "black": "#000000",
+        "light_black": "#1C1C1E",
+        "grey": "#2E2E33",
+        "red": "#E5484D",
+        "green": "#00BC90",
+        "yellow": "#E5C18C",
+        "blue": "#4C7DD6",
+        "magenta": "#A78BFA",
+        "cyan": "#5FE5D0",
+        "white": "#D2D3E0",
+        "brightBlack": "#4C4F6B",
+        "brightRed": "#FF6369",
+        "brightGreen": "#2EE6B0",
+        "brightYellow": "#FFD9A0",
+        "brightBlue": "#7CA8FF",
+        "brightMagenta": "#C4B5FD",
+        "brightCyan": "#9FFFF0",
+        "brightWhite": "#F2F3FC"
+    },
+    "cssvars": {
+        "font_main": "United Sans Medium",
+        "font_main_light": "United Sans Light"
+    },
+    "terminal": {
+        "fontFamily": "Fira Mono",
+        "cursorStyle": "block",
+        "foreground": "#D2D3E0",
+        "background": "#000000",
+        "cursor": "#00BC90",
+        "cursorAccent": "#000000",
+        "selection": "rgba(0,188,144,0.30)"
+    },
+    "globe": {
+        "base": "#0A1A18",
+        "marker": "#00BC90",
+        "pin": "#2EE6B0",
+        "satellite": "#4C7DD6"
+    },
+    "injectCSS": "div[id^=\"mod_\"] h1{color:#83838F !important;opacity:0.78 !important}section>h3.title:first-child{color:#83838F !important;border-bottom-color:rgba(131,131,143,0.22) !important}section>h3.title:first-child::before,section>h3.title:first-child::after{border-color:rgba(131,131,143,0.22) !important}div#filesystem h3.title,div#filesystem>div>p{color:#83838F !important}div#mod_sysinfo::before,div#mod_sysinfo::after{border-color:rgba(131,131,143,0.22) !important}section#keyboard{opacity:0.55}::-webkit-scrollbar{width:6px;height:6px}::-webkit-scrollbar-track{background:transparent;border:none}::-webkit-scrollbar-thumb{background:rgba(0,168,128,0.30);border-radius:3px}::-webkit-scrollbar-thumb:hover{background:rgba(0,188,144,0.55)}"
+}

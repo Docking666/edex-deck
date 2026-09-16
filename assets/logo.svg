@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512" role="img" aria-label="eDEX-Deck">
+  <title>eDEX-Deck</title>
+  <desc>An isometric control deck with an injected inner layer.</desc>
+
+  <rect width="512" height="512" fill="#000000"/>
+
+  <g stroke-linejoin="round" stroke-linecap="round">
+    <!-- 左侧面 -->
+    <path d="M81 221 L256 309 L256 379 L81 291 Z"
+          fill="#1A1A1D" stroke="#3A3A40" stroke-width="4"/>
+    <!-- 右侧面 -->
+    <path d="M256 309 L431 221 L431 291 L256 379 Z"
+          fill="#101012" stroke="#3A3A40" stroke-width="4"/>
+    <!-- 顶面：被注入的那一层 -->
+    <path d="M256 133 L431 221 L256 309 L81 221 Z"
+          fill="#0A1A15" stroke="#00BC90" stroke-width="6"/>
+    <!-- 顶面内的同心菱形 = 注入层 -->
+    <path d="M256 181 L335 221 L256 261 L177 221 Z"
+          fill="none" stroke="#00BC90" stroke-width="3" opacity="0.6"/>
+    <!-- 中心点 -->
+    <circle cx="256" cy="221" r="6" fill="#00BC90"/>
+  </g>
+</svg>

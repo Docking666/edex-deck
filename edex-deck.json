@@ -1,0 +1,41 @@
+{
+  "$comment": "eDEX-Deck profiles. Each key becomes a --profile <name>. CLI flags override these.",
+  "debugPort": 9333,
+
+  "profiles": {
+    "dock": {
+      "desc": "Layout dock only — no embedded Web UI"
+    },
+
+    "demo": {
+      "desc": "The bundled demo telemetry page",
+      "serve": "{python} -m http.server {port} --directory examples",
+      "servePort": 8898,
+      "url": "http://127.0.0.1:8898/demo-ui.html"
+    },
+
+    "vscode": {
+      "desc": "VS Code in the browser (start code-server yourself)",
+      "url": "http://127.0.0.1:8080/"
+    },
+
+    "jupyter": {
+      "desc": "JupyterLab",
+      "serve": "jupyter lab --no-browser --ServerApp.token= --port {port}",
+      "servePort": 8899,
+      "url": "http://127.0.0.1:8899/lab"
+    },
+
+    "grafana": {
+      "desc": "Grafana or any dashboard already running locally",
+      "url": "http://127.0.0.1:3000/"
+    },
+
+    "code-server": {
+      "desc": "code-server, letting the injector launch it",
+      "serve": "code-server --port {port} --auth none",
+      "servePort": 8897,
+      "url": "http://127.0.0.1:8897/"
+    }
+  }
+}

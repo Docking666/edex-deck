@@ -1,0 +1,13 @@
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+
+# transient render/preview output
+assets/_*.png
+*.log
+
+# local scratch
+.DS_Store
+Thumbs.db

@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 300" width="1200" height="300" role="img" aria-label="eDEX-Deck">
+  <title>eDEX-Deck</title>
+  <desc>Horizontal logo: isometric deck mark plus wordmark.</desc>
+
+  <rect width="1200" height="300" fill="#000000"/>
+
+  <g transform="translate(52,48) scale(0.4)" stroke-linejoin="round" stroke-linecap="round">
+    <path d="M81 221 L256 309 L256 379 L81 291 Z" fill="#1A1A1D" stroke="#3A3A40" stroke-width="4"/>
+    <path d="M256 309 L431 221 L431 291 L256 379 Z" fill="#101012" stroke="#3A3A40" stroke-width="4"/>
+    <path d="M256 133 L431 221 L256 309 L81 221 Z" fill="#0A1A15" stroke="#00BC90" stroke-width="6"/>
+    <path d="M256 181 L335 221 L256 261 L177 221 Z" fill="none" stroke="#00BC90" stroke-width="3" opacity="0.6"/>
+    <circle cx="256" cy="221" r="6" fill="#00BC90"/>
+  </g>
+
+  <g font-family="Consolas, 'Cascadia Mono', Menlo, monospace">
+    <text x="300" y="158" font-size="90" letter-spacing="1">
+      <tspan fill="#E8E8EC">eDEX</tspan><tspan fill="#55555D">-</tspan><tspan fill="#00BC90">Deck</tspan>
+    </text>
+    <text x="304" y="212" font-size="24" fill="#83838F" letter-spacing="6">NON-INVASIVE UI LAYER</text>
+  </g>
+</svg>

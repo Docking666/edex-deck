@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Deck Demo Telemetry</title>
+<style>
+  :root {
+    --accent: #00BC90;
+    --bg:     #0A0A0B;
+    --panel:  #131316;
+    --line:   #2A2A30;
+    --text:   #D2D3E0;
+    --dim:    #83838F;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; height: 100%;
+    background: var(--bg); color: var(--text);
+    font: 13px/1.5 ui-monospace, "Cascadia Mono", Consolas, monospace;
+    overflow: hidden;
+  }
+  .wrap { height: 100%; display: flex; flex-direction: column; padding: 14px; gap: 12px; }
+
+  header {
+    display: flex; align-items: baseline; gap: 12px;
+    padding-bottom: 8px; border-bottom: 1px solid var(--line);
+  }
+  header h1 { margin: 0; font-size: 15px; font-weight: 500; letter-spacing: .18em; }
+  header .tag { color: var(--dim); font-size: 11px; letter-spacing: .14em; }
+  header .live { margin-left: auto; color: var(--accent); font-size: 11px; letter-spacing: .14em; }
+  header .live::before {
+    content: ""; display: inline-block; width: 6px; height: 6px; margin-right: 6px;
+    border-radius: 50%; background: var(--accent); vertical-align: 1px;
+    animation: pulse 1.8s ease-in-out infinite;
+  }
+  @keyframes pulse { 0%,100% { opacity: 1 } 50% { opacity: .25 } }
+
+  .cards { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+  .card {
+    background: var(--panel); border: 1px solid var(--line); border-radius: 6px;
+    padding: 10px 12px;
+  }
+  .card .k { color: var(--dim); font-size: 10px; letter-spacing: .16em; }
+  .card .v { font-size: 24px; margin-top: 4px; letter-spacing: .02em; }
+  .card .v small { font-size: 12px; color: var(--dim); margin-left: 3px; }
+  .card.accent .v { color: var(--accent); }
+
+  .rows { flex: 1; display: grid; grid-template-columns: 1.35fr 1fr; gap: 12px; min-height: 0; }
+  .box {
+    background: var(--panel); border: 1px solid var(--line); border-radius: 6px;
+    padding: 10px 12px; display: flex; flex-direction: column; gap: 8px; min-height: 0;
+  }
+  .box h2 {
+    margin: 0; font-size: 10px; font-weight: 500;
+    letter-spacing: .16em; color: var(--dim);
+  }
+
+  .bars { display: flex; flex-direction: column; gap: 7px; }
+  .bar { display: grid; grid-template-columns: 84px 1fr 48px; align-items: center; gap: 10px; font-size: 11px; }
+  .bar .name { color: var(--dim); }
+  .bar .track { height: 6px; background: #1C1C20; border-radius: 3px; overflow: hidden; }
+  .bar .fill { height: 100%; background: var(--accent); border-radius: 3px; }
+  .bar .n { text-align: right; color: var(--text); }
+
+  .log { overflow: hidden; font-size: 11px; color: var(--dim); display: flex; flex-direction: column; gap: 3px; }
+  .log b { color: var(--text); font-weight: 400; }
+  .log i { color: var(--accent); font-style: normal; }
+
+  footer { color: var(--dim); font-size: 10px; letter-spacing: .12em; }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <h1>DEMO TELEMETRY</h1>
+      <span class="tag">EMBEDDED WEB UI</span>
+      <span class="live">STREAMING</span>
+    </header>
+
+    <div class="cards">
+      <div class="card accent">
+        <div class="k">THROUGHPUT</div>
+        <div class="v">1.24<small>k/s</small></div>
+      </div>
+      <div class="card">
+        <div class="k">ACTIVE JOBS</div>
+        <div class="v">18</div>
+      </div>
+      <div class="card">
+        <div class="k">QUEUE DEPTH</div>
+        <div class="v">3</div>
+      </div>
+      <div class="card">
+        <div class="k">P99 LATENCY</div>
+        <div class="v">42<small>ms</small></div>
+      </div>
+    </div>
+
+    <div class="rows">
+      <div class="box">
+        <h2>NODE LOAD</h2>
+        <div class="bars">
+          <div class="bar"><span class="name">node-a</span><span class="track"><span class="fill" style="width:78%"></span></span><span class="n">78%</span></div>
+          <div class="bar"><span class="name">node-b</span><span class="track"><span class="fill" style="width:54%"></span></span><span class="n">54%</span></div>
+          <div class="bar"><span class="name">node-c</span><span class="track"><span class="fill" style="width:31%"></span></span><span class="n">31%</span></div>
+          <div class="bar"><span class="name">node-d</span><span class="track"><span class="fill" style="width:92%"></span></span><span class="n">92%</span></div>
+          <div class="bar"><span class="name">node-e</span><span class="track"><span class="fill" style="width:46%"></span></span><span class="n">46%</span></div>
+          <div class="bar"><span class="name">node-f</span><span class="track"><span class="fill" style="width:17%"></span></span><span class="n">17%</span></div>
+        </div>
+      </div>
+
+      <div class="box">
+        <h2>EVENTS</h2>
+        <div class="log">
+          <div><b>10:41:07</b> worker pool scaled to <i>18</i></div>
+          <div><b>10:41:02</b> batch <i>#4471</i> committed</div>
+          <div><b>10:40:58</b> cache warm complete</div>
+          <div><b>10:40:51</b> node-d load peak</div>
+          <div><b>10:40:44</b> batch <i>#4470</i> committed</div>
+          <div><b>10:40:39</b> handler reloaded</div>
+          <div><b>10:40:31</b> checkpoint written</div>
+        </div>
+      </div>
+    </div>
+
+    <footer>THIS PAGE IS PART OF THE REPOSITORY — IT EXISTS ONLY TO SHOW THAT ANY LOCAL WEB UI CAN BE EMBEDDED.</footer>
+  </div>
+</body>
+</html>
