@@ -191,7 +191,11 @@ class Handler(BaseHTTPRequestHandler):
                 with open(SETTINGS_HTML, "rb") as f:
                     return self._send(200, f.read(), "text/html; charset=utf-8")
             except Exception as e:
-                return self._send(500, {"error": str(e)})
+                return self._send(500, {
+                    "error": "settings.html is not readable at %s. In a packaged "
+                             "build this means it was bundled without --add-data; "
+                             "rebuild using tools/build.py. (%s)" % (SETTINGS_HTML, e)
+                })
         if path == "/api/windows":
             try:
                 return self._send(200, {"windows": window_embed.api().list_windows()})

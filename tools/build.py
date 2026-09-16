@@ -66,6 +66,14 @@ def build(onefile=True):
     if os.path.exists(icon):
         cmd += ["--icon", icon]
 
+    # Runtime data files are NOT picked up by PyInstaller's import analysis.
+    # Forgetting this yields an exe where the settings page 404s, even though
+    # everything else works.
+    for rel in ("settings.html",):
+        p = os.path.join(SRC, rel)
+        if os.path.exists(p):
+            cmd += ["--add-data", p + os.pathsep + "."]
+
     cmd.append(ENTRY)
     run(cmd)
 
