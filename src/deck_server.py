@@ -241,7 +241,14 @@ def start(port, cdp=None, config_path=None, app_dir=None, embed_fn=None):
     _state["app_dir"] = app_dir
     _state["last_embed"] = embed_fn
 
-    httpd = ThreadingHTTPServer(("127.0.0.1", port), Handler)
+    try:
+        httpd = ThreadingHTTPServer(("127.0.0.1", port), Handler)
+    except OSError as e:
+        raise RuntimeError(
+            "port %d already in use (%s) — an older eDEX-Deck instance is still "
+            "running and answering requests with its old code. Close eDEX "
+            "(and any leftover edex-deck.exe), then start again." % (port, e)
+        )
     threading.Thread(target=httpd.serve_forever, daemon=True).start()
 
     stop = threading.Event()

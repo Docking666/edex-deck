@@ -292,22 +292,28 @@ var I18N = {
     msg.className = 'msg ' + (ok === false ? 'err' : (ok ? 'ok' : ''));
   }
 
+  // Read the body as text and parse it ourselves. Going straight to r.json()
+  // turns every server-side failure into the useless "Unexpected end of JSON
+  // input", hiding the real cause.
   function api(path, body) {
-    if (body) {
-      return fetch(path, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body)
-      }).then(function (r) {
-        return r.json().then(function (j) {
-          if (!r.ok) throw new Error(j.error || r.status);
-          return j;
-        });
-      });
-    }
-    return fetch(path).then(function (r) {
-      return r.json().then(function (j) {
-        if (!r.ok) throw new Error(j.error || r.status);
+    var init = body ? {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    } : undefined;
+
+    return fetch(path, init).then(function (r) {
+      return r.text().then(function (txt) {
+        var j = null;
+        try { j = txt ? JSON.parse(txt) : null; } catch (e) { /* not json */ }
+        if (!r.ok) {
+          throw new Error((j && j.error) ? j.error
+            : (r.status + ' — ' + String(txt || '').slice(0, 160)));
+        }
+        if (!j) {
+          throw new Error('empty response from ' + path
+            + ' — another eDEX-Deck instance may still hold this port');
+        }
         return j;
       });
     });
