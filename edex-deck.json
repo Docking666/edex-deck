@@ -2,6 +2,9 @@
   "$comment": "eDEX-Deck profiles. Each key becomes a --profile <name>. CLI flags override these.",
   "debugPort": 9333,
 
+  "$defaultProfile": "Used when the binary is launched without arguments (e.g. double-clicked).",
+  "defaultProfile": "demo",
+
   "profiles": {
     "dock": {
       "desc": "Layout dock only — no embedded Web UI"

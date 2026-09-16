@@ -304,24 +304,41 @@ def main():
     ap.add_argument("--system-shot",
                     help="after injecting, grab the whole screen to this PNG "
                          "(needed to capture embedded native views)")
+    ap.add_argument("--preset", choices=["default", "cockpit", "focus"],
+                    help="switch to this layout preset after injecting")
+    ap.add_argument("--eval", dest="eval_js",
+                    help="run this JS in the renderer after injecting (debugging aid)")
+    ap.add_argument("--eval-file", dest="eval_file",
+                    help="run JS from a file in the renderer "
+                         "(use this instead of --eval when the script contains quotes)")
     ap.add_argument("--outdir", default=os.path.join(HERE, "..", "docs", "screenshots"))
     args = ap.parse_args()
 
-    # 双击 exe 时不会带参数 —— 那就默认常驻到 eDEX 关闭，
-    # 否则用户双击完窗口一闪而过，什么也没发生。
-    if getattr(sys, "frozen", False) and len(sys.argv) == 1:
+    frozen_launch = getattr(sys, "frozen", False) and len(sys.argv) == 1
+    # 双击 exe 时不会带参数 —— 默认常驻到 eDEX 关闭，
+    # 否则双击完窗口一闪而过，什么也没发生。
+    if frozen_launch:
         args.keep = True
 
-    # Profile lookup. CLI flags always win over the profile, so any value can
-    # be overridden on the command line.
+    # Profile lookup. CLI flags always win over the profile.
     cfg_path = args.config or os.path.join(app_dir(), "edex-deck.json")
+    cfg = {}
     profiles = {}
     if os.path.exists(cfg_path):
         try:
             with open(cfg_path, encoding="utf-8") as f:
-                profiles = json.load(f).get("profiles", {}) or {}
+                cfg = json.load(f) or {}
+            profiles = cfg.get("profiles", {}) or {}
         except Exception as e:
             log("[warn] could not read config:", cfg_path, e)
+
+    # 双击时套用配置里的 defaultProfile。
+    # 少了这一步，用户双击后会发现"中间还是终端"，以为嵌入功能没生效。
+    if frozen_launch and not args.profile:
+        dp = cfg.get("defaultProfile")
+        if dp and dp in profiles:
+            args.profile = dp
+            log("[profile] defaultProfile ->", dp)
 
     if args.profile:
         p = profiles.get(args.profile)
@@ -519,6 +536,27 @@ def main():
                 time.sleep(4)
                 p = os.path.join(outdir, "layout-%s.png" % name)
                 log("[docs]", name, "->", p, cdp.shot(p))
+
+        if args.preset:
+            log("[layout] switching to preset:", cdp.ev(
+                "(function(){var b=document.querySelector('#__edex_layout_ctl "
+                "[data-layout=\"%s\"]');if(!b)return 'no-btn';b.click();return 'ok';})()"
+                % args.preset
+            ))
+            time.sleep(3)
+
+        js_src = None
+        if args.eval_file:
+            try:
+                with open(args.eval_file, encoding="utf-8") as f:
+                    js_src = f.read()
+            except Exception as e:
+                log("[eval] cannot read", args.eval_file, e)
+        elif args.eval_js:
+            js_src = args.eval_js
+        if js_src:
+            log("[eval]", cdp.ev(js_src))
+            time.sleep(1.5)
 
         if args.system_shot:
             time.sleep(2.5)

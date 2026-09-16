@@ -36,15 +36,17 @@ LAYOUT_JS = r"""
           left:0.555vh; top:2.5vh; width:18%;
           height:auto; max-height:none;
         }
+        /* 两栏纵向拼接后总高会超过一屏。以前的做法是藏掉 GLOBE，
+           但那会让用户以为模块坏了，而且插件开关也救不回来
+           （子元素被通配选择器一起压住了）。改成让右栏自己滚动。*/
         section#mod_column_right{
           left:0.555vh; right:auto; width:18%;
-          height:auto; max-height:none;
+          height:auto; max-height:52%;
+          overflow-y:auto; overflow-x:hidden;
           align-items:flex-end;
         }
         section#mod_column_left > h3.title{ left:0.555vh; }
         section#mod_column_right > h3.title{ right:0.555vh; }
-        /* WORLD VIEW 的地球模块占地最大、信息密度最低，收起它才放得下两栏 */
-        [id*="globe"]{ display:none !important; }
         section#keyboard{ display:none !important; }
         /* 文件栏在 cockpit 下无法正常渲染（父级尺寸一变，eDEX 的文件网格就不出内容），
            索性让位给终端 */
@@ -119,10 +121,19 @@ LAYOUT_JS = r"""
       el.id = MOD_STYLE_ID;
       document.head.appendChild(el);
     }
+    /* 底部条：被搬到 dock 区的模块落在这里 */
+    const DOCK_CSS = [
+      '#__edex_dock_strip{',
+      'width:96%;display:flex;flex-direction:row;flex-wrap:wrap;',
+      'gap:1.2vh;align-items:flex-start;justify-content:center;',
+      'margin:0.5vh auto 0 auto}',
+      '#__edex_dock_strip > *{flex:0 0 auto;max-width:30%;min-width:15%}'
+    ].join('');
+
     el.textContent = Array.from(set).map((id) => {
       return (MODULES.some((m) => m.id === id) ? '#' + id : '[id="' + id + '"]') +
              '{ display:none !important; }';
-    }).join('\n');
+    }).join('\n') + '\n' + DOCK_CSS;
     return set;
   }
 
@@ -135,6 +146,116 @@ LAYOUT_JS = r"""
     // 隐藏/显示会改变 main_shell 的位置，重新对齐嵌入视图
     setTimeout(syncView, 200);
     return id;
+  }
+
+  /* ---- 模块区域分配 ----
+     模块不只能显隐，还能在左栏 / 右栏 / 底部条之间搬运。
+     实现方式是真的移动 DOM —— 预设只负责排版，不负责决定"哪个模块属于哪一栏"。*/
+
+  const AREA_LS_KEY = '__edex_mod_area';
+  const DOCK_ID = '__edex_dock_strip';
+  const AREA_ORDER = ['left', 'right', 'dock'];
+  const AREA_LABEL = { left: 'L', right: 'R', dock: 'D' };
+  const AREAS = { left: '#mod_column_left', right: '#mod_column_right' };
+
+  const DEFAULT_AREA = {
+    mod_clock: 'left', mod_sysinfo: 'left', mod_hardwareInspector: 'left',
+    mod_cpuinfo: 'left', mod_ramwatcher: 'left', mod_toplist: 'left',
+    mod_netstat: 'right', mod_globe: 'right', mod_conninfo: 'right'
+  };
+
+  function areaMap() {
+    try {
+      const m = JSON.parse(localStorage.getItem(AREA_LS_KEY) || '{}');
+      return (m && typeof m === 'object') ? m : {};
+    } catch (e) { return {}; }
+  }
+
+  function saveAreaMap(m) {
+    try { localStorage.setItem(AREA_LS_KEY, JSON.stringify(m)); } catch (e) {}
+  }
+
+  function areaOf(id) {
+    return areaMap()[id] || DEFAULT_AREA[id] || 'left';
+  }
+
+  function ensureDockStrip() {
+    let el = document.getElementById(DOCK_ID);
+    if (el) return el;
+    el = document.createElement('div');
+    el.id = DOCK_ID;
+    /* 插在 #main_shell 之后 —— body 是 flex-wrap，它会独占一行，
+       正好落在终端下方、文件栏上方。*/
+    const shell = document.querySelector('#main_shell');
+    if (shell && shell.parentNode) {
+      shell.parentNode.insertBefore(el, shell.nextSibling);
+    } else {
+      document.body.appendChild(el);
+    }
+    return el;
+  }
+
+  function applyAreas() {
+    const m = areaMap();
+    MODULES.forEach(function (mod) {
+      if (mod.group === 'DOCK') return;   // filesystem / keyboard 是原生组件，不参与搬运
+      const el = document.getElementById(mod.id);
+      if (!el) return;
+      const target = m[mod.id] || DEFAULT_AREA[mod.id] || 'left';
+      const container = (target === 'dock')
+        ? ensureDockStrip()
+        : document.querySelector(AREAS[target]);
+      if (container && el.parentNode !== container) container.appendChild(el);
+    });
+
+    /* 模块被搬空的栏位不必占着位置 —— 只剩一个标题空挂着很怪 */
+    ['#mod_column_left', '#mod_column_right'].forEach(function (sel) {
+      const col = document.querySelector(sel);
+      if (!col) return;
+      const hasMod = Array.prototype.some.call(col.children, function (c) {
+        return c.tagName !== 'H3';
+      });
+      col.style.display = hasMod ? '' : 'none';
+    });
+
+    const strip = document.getElementById(DOCK_ID);
+    if (strip) {
+      const has = strip.children.length > 0;
+      strip.style.display = has ? 'flex' : 'none';
+      /* 终端要给底部条让位 —— 否则 dock 条落在视口外，搬过去的模块看不见。
+         高度按 dock 条实际占用算，不写死百分比。*/
+      const shell = document.querySelector('#main_shell');
+      if (shell) {
+        const preset = activePreset();
+        if (preset === 'cockpit' || preset === 'focus') {
+          const base = (preset === 'cockpit') ? 90 : 62;
+          shell.style.height = has
+            ? 'calc(' + base + '% - ' + (strip.offsetHeight + 10) + 'px)'
+            : '';
+        }
+      }
+    }
+    return 'applied';
+  }
+
+  function cycleArea(id) {
+    const cur = areaOf(id);
+    const next = AREA_ORDER[(AREA_ORDER.indexOf(cur) + 1) % AREA_ORDER.length];
+    const m = areaMap();
+    m[id] = next;
+    saveAreaMap(m);
+    applyAreas();
+    paintAreas();
+    setTimeout(syncView, 260);
+    return next;
+  }
+
+  function paintAreas() {
+    const ctl = document.getElementById(CTL_ID);
+    if (!ctl) return;
+    ctl.querySelectorAll('[data-area]').forEach(function (b) {
+      b.textContent = AREA_LABEL[areaOf(b.getAttribute('data-area'))] || '?';
+    });
   }
 
   function paintModules() {
@@ -188,6 +309,24 @@ LAYOUT_JS = r"""
     } catch (e) { return 'err:' + e.message; }
   }
 
+  /* 布局一变 #main_shell 的尺寸就变，嵌进去的 BrowserView 必须跟着走。
+     早先靠 setTimeout 猜过渡时长，不可靠 —— 用户切 tab、拉窗口、
+     任何一次重排都会让尺寸漂移，表现就是"点一下别的地方才对上"。
+     改成直接监听元素尺寸变化。*/
+  function watchShellSize() {
+    const el = document.querySelector('#main_shell');
+    if (!el) return 'no-shell';
+    if (!globalThis.ResizeObserver) return 'no-resizeobserver';
+    if (globalThis.__edexDeckRO) return 'already';
+    let t = null;
+    globalThis.__edexDeckRO = new ResizeObserver(function () {
+      if (t) clearTimeout(t);
+      t = setTimeout(syncView, 50);
+    });
+    globalThis.__edexDeckRO.observe(el);
+    return 'observing';
+  }
+
   /* 两个 column 的高度都由内容撑开，无法用固定 top 拼接 ——
      必须测出左栏实际底边，再把右栏放到它下面。*/
   function applyDynamic(name) {
@@ -200,14 +339,44 @@ LAYOUT_JS = r"""
     if (name === 'cockpit') {
       L.style.height = 'auto';
       R.style.height = 'auto';
-        setTimeout(function () {
-        try {
-          /* 留 4px 间隙：再大右栏底部会被视口切掉 */
-          const lb = L.getBoundingClientRect().bottom;
-          R.style.top = Math.round(lb + 4) + 'px';
-        } catch (e) {}
-      }, 140);
+      positionRightColumn();
     }
+  }
+
+  /* 把右栏放到左栏正下方。
+     光靠延时测量不可靠 —— CSS 改完浏览器是异步重排的，固定 140ms 拿到的
+     可能还是旧高度，表现就是右栏贴在顶部。先等两帧再测。*/
+  function positionRightColumn() {
+    const L = document.querySelector('#mod_column_left');
+    const R = document.querySelector('#mod_column_right');
+    if (!L || !R) return 'no-columns';
+    requestAnimationFrame(function () {
+      requestAnimationFrame(function () {
+        setTimeout(function () {
+          try {
+            /* 留 4px 间隙；高度按剩余空间算，否则右栏底部会被视口切掉 */
+            const bottom = Math.round(L.getBoundingClientRect().bottom);
+            const avail = window.innerHeight - bottom - 14;
+            R.style.top = (bottom + 4) + 'px';
+            R.style.maxHeight = Math.max(120, avail) + 'px';
+          } catch (e) {}
+        }, 40);
+      });
+    });
+    return 'ok';
+  }
+
+  /* 左栏高度会随模块增删变化（用户把模块搬进搬出），持续跟随 */
+  function watchColumnHeights() {
+    const L = document.querySelector('#mod_column_left');
+    if (!L || !globalThis.ResizeObserver) return 'no';
+    if (globalThis.__edexDeckColRO) return 'already';
+    globalThis.__edexDeckColRO = new ResizeObserver(function () {
+      if (activePreset() !== 'cockpit') return;
+      positionRightColumn();
+    });
+    globalThis.__edexDeckColRO.observe(L);
+    return 'observing';
   }
 
   function setPreset(name) {
@@ -520,10 +689,37 @@ LAYOUT_JS = r"""
       g.appendChild(lab);
 
       MODULES.filter((m) => m.group === grp).forEach((m) => {
-        const b = pill(m.label);
+        const b = pill('');
         b.setAttribute('data-mod', m.id);
         b.style.padding = '0.34vh 0.66vh';
         b.style.fontSize = '1.15vh';
+        b.style.display = 'inline-flex';
+        b.style.alignItems = 'center';
+        b.style.gap = '0.45vh';
+
+        const name = document.createElement('span');
+        name.textContent = m.label;
+        b.appendChild(name);
+
+        /* 只有侧栏模块能搬运；FILES / KEYBOARD 是 eDEX 原生组件 */
+        if (m.group === 'PANEL') {
+          const badge = document.createElement('span');
+          badge.setAttribute('data-area', m.id);
+          badge.textContent = AREA_LABEL[areaOf(m.id)];
+          badge.title = 'L 左栏 / R 右栏 / D 底部条 —— 点击切换';
+          badge.style.cssText = [
+            'cursor:pointer', 'padding:0 0.32vh', 'border-radius:0.2vh',
+            'font-size:1.0vh', 'line-height:1.55',
+            'border:0.08vh solid rgba(var(--color_r),var(--color_g),var(--color_b),0.5)',
+            'opacity:0.85'
+          ].join(';');
+          badge.addEventListener('click', function (ev) {
+            ev.stopPropagation();
+            cycleArea(m.id);
+          });
+          b.appendChild(badge);
+        }
+
         b.addEventListener('click', (e) => { e.stopPropagation(); toggleModule(m.id); });
         g.appendChild(b);
       });
@@ -552,8 +748,12 @@ LAYOUT_JS = r"""
   ensurePinStyle();
   applyModules();
   const now = setPreset(activePreset());
+  applyAreas();
   paintModules();
   paintPin();
+  paintAreas();
+  watchShellSize();
+  watchColumnHeights();
 
   /* 恢复上次的贴边吸附状态（收起态） */
   (function () {

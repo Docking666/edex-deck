@@ -183,6 +183,16 @@ LAYOUT [DEFAULT] [COCKPIT] [FOCUS] | MODULES | PIN
   | `PANEL` | `CLOCK` `SYSINFO` `HW` `CPU` `RAM` `PROC` `NETSTAT` `GLOBE` `TRAFFIC` |
   | `DOCK` | `FILES` `KEYBOARD` |
 
+  Each `PANEL` entry carries a **placement badge** — `L` left column, `R` right column, `D` bottom strip. Click the badge to move that module; the columns, the bottom strip and the terminal all re-flow around it. A column that has been emptied out hides itself.
+
+  So you are not limited to toggling things on and off: the bottom strip is a real slot, and anything can be parked there — useful when a layout gives the terminal most of the screen but you still want a couple of gauges visible.
+
+#### A concrete example
+
+`COCKPIT` puts every panel in the left column and hides the keyboard. From there you can move `NETSTAT`, `TRAFFIC`, `GLOBE` and `CPU` down to the bottom strip, and the terminal shrinks to make room automatically:
+
+![placement](docs/screenshots/layout-placement.png)
+
 - **`PIN`** enables edge snapping. Drag the dock to a screen edge, release, and it collapses to a 9 px tab that slides out on hover.
 - **Double-click** the dock to cancel snapping and return to the bottom-right corner.
 
