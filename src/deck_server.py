@@ -19,14 +19,120 @@ window follows layout switches instead of freezing at its attach-time position.
 
 import json
 import os
+import subprocess
+import sys
 import threading
 import time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 import window_embed
 
+IS_WIN = sys.platform == "win32"
+
 HERE = os.path.dirname(os.path.abspath(__file__))
 SETTINGS_HTML = os.path.join(HERE, "settings.html")
+
+
+# Shell-like processes whose loss would wreck the user environment. Never
+# kill these automatically, even if they hold the port — it's not worth
+# self-harm just to clean up an exotic state.
+SHELL_PROCESS_NAMES = {
+    "powershell.exe", "pwsh.exe", "wscript.exe", "cscript.exe",
+    "cmd.exe", "bash.exe", "wsl.exe", "msys2.exe", "git-bash.exe",
+    "explorer.exe", "dwm.exe", "winlogon.exe",
+    "code.exe", "code - insiders.exe", "cursor.exe",
+    "msedge.exe", "chrome.exe", "firefox.exe",
+    "WindowServer.exe",
+}
+
+
+def _pid_to_name(pid):
+    try:
+        out = subprocess.run(
+            ["tasklist", "/NH", "/FO", "CSV", "/FI", "PID eq %d" % pid],
+            capture_output=True, text=True, timeout=3,
+        )
+    except Exception:
+        return None
+    line = (out.stdout or "").strip().splitlines()
+    if not line:
+        return None
+    return line[0].split('","')[0].strip('" ').lower()
+
+
+def _kill_other_edex_deck():
+    """Find and kill any process holding port 8899 except ourselves.
+
+    Two passes: the obvious one (anything named edex-deck.exe), then a belt-
+    and-braces one (anyone netstat reports as LISTENING on the port, except
+    shell-like processes that must never be killed). Pass 2 catches things like
+    a stray `python src/inject.py --keep` that occupied the port during
+    manual testing.
+    """
+    if not IS_WIN:
+        return []
+    my_pid = os.getpid()
+    killed = []
+    refused = []
+
+    # Pass 1: any old edex-deck.exe still running
+    try:
+        out = subprocess.run(
+            ["tasklist", "/NH", "/FO", "CSV", "/FI", "IMAGENAME eq edex-deck.exe"],
+            capture_output=True, text=True, timeout=5,
+        )
+        for line in (out.stdout or "").splitlines():
+            parts = [p.strip('" ') for p in line.split('","')]
+            if len(parts) < 2 or "edex-deck" not in parts[0].lower():
+                continue
+            try:
+                pid = int(parts[1])
+            except ValueError:
+                continue
+            if pid == my_pid:
+                continue
+            try:
+                subprocess.run(["taskkill", "/F", "/PID", str(pid)],
+                               capture_output=True, timeout=5)
+                killed.append(pid)
+            except Exception:
+                pass
+    except Exception:
+        pass
+
+    # Pass 2: anyone LISTENING on 127.0.0.1:8899 — regardless of name.
+    try:
+        out = subprocess.run(
+            ["netstat", "-ano"], capture_output=True, text=True, timeout=5,
+        )
+        port_pids = set()
+        for line in (out.stdout or "").splitlines():
+            if ":8899" not in line or "LISTENING" not in line:
+                continue
+            parts = line.split()
+            if len(parts) < 5:
+                continue
+            try:
+                port_pids.add(int(parts[-1]))
+            except ValueError:
+                pass
+        for pid in port_pids:
+            if pid == my_pid or pid in killed:
+                continue
+            name = _pid_to_name(pid)
+            if name in SHELL_PROCESS_NAMES:
+                refused.append(pid)
+                continue
+            try:
+                subprocess.run(["taskkill", "/F", "/PID", str(pid)],
+                               capture_output=True, timeout=5)
+                killed.append(pid)
+            except Exception:
+                pass
+    except Exception:
+        pass
+
+    return killed, refused
 
 _state = {
     "cdp": None,            # CDP instance for the eDEX renderer
@@ -207,7 +313,10 @@ class Handler(BaseHTTPRequestHandler):
                 "attached": {"hwnd": "0x%08X" % a["hwnd"]} if a else None,
                 "cdp": bool(_state.get("cdp")),
             })
-        return self._send(404, {"error": "not found"})
+        # silence the favicon probe so it doesn't pollute logs / look like a real error
+        if path == "/favicon.ico":
+            return self._send(204, b"")
+        return self._send(404, {"error": "no such endpoint: " + path})
 
     def do_POST(self):
         path = self.path.split("?")[0]
@@ -245,14 +354,30 @@ def start(port, cdp=None, config_path=None, app_dir=None, embed_fn=None):
     _state["app_dir"] = app_dir
     _state["last_embed"] = embed_fn
 
-    try:
-        httpd = ThreadingHTTPServer(("127.0.0.1", port), Handler)
-    except OSError as e:
-        raise RuntimeError(
-            "port %d already in use (%s) — an older eDEX-Deck instance is still "
-            "running and answering requests with its old code. Close eDEX "
-            "(and any leftover edex-deck.exe), then start again." % (port, e)
-        )
+    httpd = None
+    last_err = None
+    for _ in range(2):
+        try:
+            httpd = ThreadingHTTPServer(("127.0.0.1", port), Handler)
+            break
+        except OSError as e:
+            last_err = e
+            killed, refused = _kill_other_edex_deck()
+            if not killed:
+                msg = "port %d already in use (%s). " % (port, e)
+                if refused:
+                    msg += ("A shell-like process (PID %s) is occupying the port "
+                            "and was left alone on purpose; close that process or "
+                            "its parent terminal, then start again." % ", ".join(map(str, refused)))
+                else:
+                    msg += ("An older eDEX-Deck instance is still running; close eDEX "
+                             "(and any leftover edex-deck.exe), then start again.")
+                raise RuntimeError(msg) from e
+            # Give Windows a moment to release the socket
+            time.sleep(0.6)
+    if httpd is None:
+        raise RuntimeError("could not bind port %d: %s" % (port, last_err))
+
     threading.Thread(target=httpd.serve_forever, daemon=True).start()
 
     stop = threading.Event()
