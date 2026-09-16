@@ -61,6 +61,115 @@ def app_dir():
     return os.path.dirname(HERE)
 
 
+# ------------------------------------------------------------------ config
+
+CONFIG_TEMPLATE = {
+    "$comment": "eDEX-Deck config. 'defaultProfile' is used when the binary is "
+                "launched with no arguments (e.g. double-clicked).",
+    "debugPort": DEFAULT_DEBUG_PORT,
+    "$defaultProfile": "One of the keys below. Set to null to only inject the dock.",
+    "defaultProfile": "demo",
+    "profiles": {
+        "dock": {
+            "desc": "Layout dock only - no embedded Web UI"
+        },
+        "demo": {
+            "$serveStatic": "Serves a directory from inside this binary. "
+                            "Use this instead of {python}, which points back at "
+                            "the executable once packaged.",
+            "desc": "The bundled demo page (examples/demo-ui.html)",
+            "serveStatic": "examples",
+            "servePort": DEFAULT_SERVE_PORT,
+            "url": "http://127.0.0.1:%d/demo-ui.html" % DEFAULT_SERVE_PORT
+        }
+    }
+}
+
+
+def ensure_config(cfg_path):
+    """Write a commented template on first run.
+
+    Without this, a user who just double-clicks the binary sees only the dock
+    and has no way of learning that anything else is possible.
+    """
+    if os.path.exists(cfg_path):
+        return False
+    try:
+        with open(cfg_path, "w", encoding="utf-8") as f:
+            json.dump(CONFIG_TEMPLATE, f, indent=2, ensure_ascii=False)
+        return True
+    except Exception as e:
+        log("[warn] could not write config template:", e)
+        return False
+
+
+def state_file():
+    base = os.environ.get("APPDATA") or os.path.expanduser("~")
+    d = os.path.join(base, "edex-deck")
+    try:
+        os.makedirs(d, exist_ok=True)
+    except Exception:
+        return None
+    return os.path.join(d, "state.json")
+
+
+def read_state():
+    p = state_file()
+    if not p or not os.path.exists(p):
+        return {}
+    try:
+        with open(p, encoding="utf-8") as f:
+            return json.load(f) or {}
+    except Exception:
+        return {}
+
+
+def start_static_server(directory, port):
+    """Serve a directory from a background thread.
+
+    This is the only serving mode that works from a packaged binary: `{python}`
+    expands to `sys.executable`, and once frozen that *is* the binary itself,
+    so "{python} -m http.server ..." ends up re-invoking this program. The
+    `http.server` module is bundled into the executable, so running it in-process
+    avoids needing an external interpreter at all.
+
+    Returns (server, None) on success or (None, reason) on failure.
+    """
+    import functools
+    import http.server
+    import socketserver
+    import threading
+
+    directory = os.path.abspath(directory)
+    if not os.path.isdir(directory):
+        return None, "not a directory: %s" % directory
+
+    handler = functools.partial(
+        http.server.SimpleHTTPRequestHandler, directory=directory
+    )
+    try:
+        httpd = socketserver.TCPServer(("127.0.0.1", port), handler)
+    except OSError as e:
+        return None, str(e)
+
+    httpd.daemon_threads = True
+    threading.Thread(target=httpd.serve_forever, daemon=True).start()
+    return httpd, None
+
+
+def write_state(patch):
+    p = state_file()
+    if not p:
+        return
+    st = read_state()
+    st.update(patch)
+    try:
+        with open(p, "w", encoding="utf-8") as f:
+            json.dump(st, f, indent=2, ensure_ascii=False)
+    except Exception:
+        pass
+
+
 # ------------------------------------------------------------------ helpers
 
 def log(*a):
@@ -322,6 +431,10 @@ def main():
 
     # Profile lookup. CLI flags always win over the profile.
     cfg_path = args.config or os.path.join(app_dir(), "edex-deck.json")
+    if not os.path.exists(cfg_path):
+        if ensure_config(cfg_path):
+            log("[config] no config found — wrote a template to", cfg_path)
+
     cfg = {}
     profiles = {}
     if os.path.exists(cfg_path):
@@ -332,27 +445,55 @@ def main():
         except Exception as e:
             log("[warn] could not read config:", cfg_path, e)
 
-    # 双击时套用配置里的 defaultProfile。
-    # 少了这一步，用户双击后会发现"中间还是终端"，以为嵌入功能没生效。
+    # 双击（无参数）时决定嵌什么。决策链从最明确到最兜底：
+    #   defaultProfile > 上次用过 > 仅有的那一个 > 明确提示（而不是静默只注入 dock）
     if frozen_launch and not args.profile:
         dp = cfg.get("defaultProfile")
+        src = "defaultProfile"
+        if not dp:
+            dp = read_state().get("lastProfile")
+            src = "last used"
+        if not dp and len(profiles) == 1:
+            dp = list(profiles)[0]
+            src = "only profile"
         if dp and dp in profiles:
             args.profile = dp
-            log("[profile] defaultProfile ->", dp)
+            log("[profile] using %s -> %s" % (src, dp))
+        else:
+            exe = os.path.basename(sys.executable) or "edex-deck"
+            if profiles:
+                log("[hint] no embed target chosen — injecting the dock only")
+                log("[hint] available:", ", ".join(sorted(profiles)))
+                log("[hint] set defaultProfile in %s, or run: %s --profile <name>" % (cfg_path, exe))
+            else:
+                log("[hint] no profiles configured — injecting the dock only")
+                log("[hint] add one to %s, or run: %s --serve \"<command>\"" % (cfg_path, exe))
 
     if args.profile:
+        write_state({"lastProfile": args.profile})
         p = profiles.get(args.profile)
         if p is None:
             log("[error] unknown profile:", args.profile)
             log("[error] available:", ", ".join(sorted(profiles)) or "(none)")
             return 2
         log("[profile]", args.profile, "-", p.get("desc", ""))
-        if p.get("serve"):
-            sp = p.get("servePort", args.serve_port)
+        sp = p.get("servePort", args.serve_port)
+        if p.get("serveStatic"):
+            # 打包后唯一可用的起服务方式：进程内线程，用的是打进来的 http.server
+            static_srv, err = start_static_server(
+                os.path.join(app_dir(), p["serveStatic"]), sp
+            )
+            if err:
+                log("[serve] static server failed:", err)
+            else:
+                log("[serve] static:", p["serveStatic"], "-> port", sp)
+        elif p.get("serve"):
+            if getattr(sys, "frozen", False) and "{python}" in p["serve"]:
+                log("[warn] {python} resolves to this binary once packaged — "
+                    "use \"serveStatic\" for a bundled static server")
             cmd = (
                 p["serve"]
                 .replace("{port}", str(sp))
-                # {python} 指向当前解释器，避免依赖 PATH 里的 python
                 .replace("{python}", '"%s"' % sys.executable)
             )
             args.serve = args.serve or cmd

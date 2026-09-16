@@ -395,8 +395,14 @@ LAYOUT_JS = r"""
       const h = ctl.querySelector('.__elc_hint');
       if (h) h.textContent = LAYOUTS[name].hint;
     }
-    // #main_shell 有 .5s 的 width/height 过渡，等动画结束再对齐
-    setTimeout(syncView, 620);
+    /* 布局切换带来两类变化，只靠一种机制覆盖不全：
+       - 尺寸变化       -> ResizeObserver 会捕获
+       - 位置变化       -> 如 COCKPIT 给 #main_shell 加 margin-left，
+                           尺寸可能没变，ResizeObserver 根本不触发
+       所以再按过渡时长补几个时间点，把"只是挪了位置"的情况也兜住。*/
+    [120, 300, 620, 1100].forEach(function (ms) {
+      setTimeout(syncView, ms);
+    });
     return name;
   }
 

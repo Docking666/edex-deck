@@ -101,21 +101,27 @@ eDEX-Deck launches eDEX with a debugging port, waits for the UI to build, inject
 
 The centre pane is just a `BrowserView` pointed at a URL — **anything that speaks HTTP can live there**. VS Code in the browser (`code-server`), JupyterLab, Grafana, a self-hosted dashboard, a status page, or your own front end.
 
-The repo ships a self-contained demo so you can see it working right away:
+The bundled demo is the easiest way to see it working. It uses `serveStatic`, which serves a directory **from inside the binary** — no external Python, so it works from the packaged exe too:
 
-```bash
-# serve examples/ on a local port
-python -m http.server 8898 --directory examples
-
-# in another shell, embed it
-python src/inject.py --url "http://127.0.0.1:8898/demo-ui.html"
+```json
+{
+  "profiles": {
+    "demo": {
+      "serveStatic": "examples",
+      "servePort": 8898,
+      "url": "http://127.0.0.1:8898/demo-ui.html"
+    }
+  }
+}
 ```
 
-If the program prints its own URL on startup, let the injector launch it and pick the URL up automatically:
+For a program that prints its own URL on startup, let the injector launch it and pick the URL up automatically:
 
 ```bash
 python src/inject.py --serve "code-server --port 8898 --auth none"
 ```
+
+> ⚠️ `{python}` in a `serve` command expands to the interpreter running the injector. Once packaged, that **is the binary itself**, so `{python} -m http.server …` would re-invoke this program. Use `serveStatic` for anything you want to work from the packaged exe.
 
 #### Profiles — one command per target
 

@@ -11,8 +11,9 @@
     },
 
     "demo": {
+      "$serveStatic": "Serves a directory from inside this binary; works from the packaged exe, unlike {python}.",
       "desc": "The bundled demo telemetry page",
-      "serve": "{python} -m http.server {port} --directory examples",
+      "serveStatic": "examples",
       "servePort": 8898,
       "url": "http://127.0.0.1:8898/demo-ui.html"
     },

@@ -93,14 +93,20 @@ python src/inject.py
 
 ### 嵌入本地 Web UI
 
-**任何能通过 HTTP 访问的界面都能嵌** —— VS Code（`code-server`）、Jupyter、Grafana、自研看板，都可以。仓库自带一个演示页，可以直接试：
+**任何能通过 HTTP 访问的界面都能嵌** —— VS Code（`code-server`）、Jupyter、Grafana、自研看板，都可以。
 
-```bash
-# 起一个本地静态服务
-python -m http.server 8898 --directory examples
+仓库自带一个演示页，用的是 `serveStatic`：**从二进制内部起一个静态服务**，不需要外部 Python，打包后的 exe 也能直接用：
 
-# 另一个终端里嵌入它
-python src/inject.py --url "http://127.0.0.1:8898/demo-ui.html"
+```json
+{
+  "profiles": {
+    "demo": {
+      "serveStatic": "examples",
+      "servePort": 8898,
+      "url": "http://127.0.0.1:8898/demo-ui.html"
+    }
+  }
+}
 ```
 
 若目标程序启动时会在 stdout 打印自己的 URL，也可以让注入器帮你拉起并自动抓取：
@@ -110,6 +116,8 @@ python src/inject.py --serve "mytool --serve --port 8898"
 ```
 
 常驻服务则可以配成 profile（见下文），一条命令切换。
+
+> ⚠️ `serve` 命令里的 `{python}` 会展开为运行注入器**本身的解释器**。打包成 exe 后，那个"解释器"就是 exe 自己 —— `{python} -m http.server …` 等于自己调自己。想让功能在打包版里可用，用 `serveStatic`。
 
 ### Windows 一键启动
 
