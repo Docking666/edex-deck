@@ -675,6 +675,18 @@ LAYOUT_JS = r"""
     });
     row.appendChild(pinBtn);
 
+    /* SETTINGS = 打开本地设置页（选要嵌的窗口 / URL / 文件夹，保存成 profile）。
+       设置页跑在 eDEX 的 renderer 之外，因为 CSP 会拦掉它需要的 API。 */
+    const stBtn = pill('SETTINGS');
+    stBtn.title = '打开设置页：选择要嵌入的应用窗口 / Web 地址 / 本地文件夹';
+    stBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      try {
+        require('child_process').exec('start "" "http://127.0.0.1:8899/"');
+      } catch (err) { /* 无 Node 环境时静默 */ }
+    });
+    row.appendChild(stBtn);
+
     /* ---- 模块开关面板 ---- */
     const mods = document.createElement('div');
     mods.id = '__edex_mods_panel';

@@ -52,6 +52,7 @@ from screenshot import capture as sys_capture  # noqa: E402
 
 DEFAULT_DEBUG_PORT = 9333
 DEFAULT_SERVE_PORT = 8898
+DEFAULT_DECK_PORT = 8899
 
 
 def app_dir():
@@ -304,6 +305,30 @@ INJECT_VIEW_JS = r"""
 })()
 """
 
+def make_embed_fn(cdp, serve_port, app_root):
+    """Handle for deck_server: embed whatever the settings page picks, right away.
+
+    spec is {"url": ...} or {"static": "examples", "url": ...}.
+    """
+    def embed(spec):
+        url = (spec or {}).get("url") or ""
+        static = (spec or {}).get("static")
+        if static:
+            _srv, err = start_static_server(os.path.join(app_root, static), serve_port)
+            if err:
+                return "static server failed: %s" % err
+            if not url:
+                url = "http://127.0.0.1:%d/" % serve_port
+        if not url:
+            return "nothing to embed"
+        js = (INJECT_VIEW_JS
+              .replace("__PW__", json.dumps(""))
+              .replace("__PORT__", str(serve_port))
+              .replace("__URL__", json.dumps(url)))
+        return cdp.ev(js)
+    return embed
+
+
 # Some UIs are built for newer Chromium than the host ships. Inject a tiny
 # polyfill set before the page's own scripts run.
 POLYFILL = r"""
@@ -420,6 +445,8 @@ def main():
     ap.add_argument("--eval-file", dest="eval_file",
                     help="run JS from a file in the renderer "
                          "(use this instead of --eval when the script contains quotes)")
+    ap.add_argument("--deck-port", type=int, default=DEFAULT_DECK_PORT,
+                    help="port for the settings control service (default 8899)")
     ap.add_argument("--outdir", default=os.path.join(HERE, "..", "docs", "screenshots"))
     args = ap.parse_args()
 
@@ -698,6 +725,21 @@ def main():
         if js_src:
             log("[eval]", cdp.ev(js_src))
             time.sleep(1.5)
+
+        # 设置入口：本地控制服务。布局坞的 SETTINGS 按钮会打开它，
+        # 也可以直接在浏览器里访问 http://127.0.0.1:8899/
+        try:
+            import deck_server
+            deck_server.start(
+                port=args.deck_port,
+                cdp=cdp,
+                config_path=cfg_path,
+                app_dir=app_dir(),
+                embed_fn=make_embed_fn(cdp, args.serve_port, app_dir()),
+            )
+            log("[settings] http://127.0.0.1:%d/" % args.deck_port)
+        except Exception as e:
+            log("[settings] unavailable:", type(e).__name__, e)
 
         if args.system_shot:
             time.sleep(2.5)
